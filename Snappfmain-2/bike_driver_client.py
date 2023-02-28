@@ -124,5 +124,13 @@ def order_recive():
             return jsonify({"msg": "UnSuccessfully Order Process"}), 404
 
 
+
+@app.route('/notify', methods=['GET', 'Post'])
+def notify():
+    return "------------OK DONE---------------"
+    #return jsonify({"msg": "------------OK DONE---------------"}), 201,
+
+
+
 if __name__ == "__main__":
     app.run(debug=True , port=6000)

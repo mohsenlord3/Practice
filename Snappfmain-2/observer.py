@@ -10,6 +10,8 @@ import abc
 from random import randrange
 import json
 import rabbitpy
+import pika
+import uuid
                                         #-----Requirements-----
 #-----------------------------------------------------------------------------------------------------------------------
 app = Flask(__name__)
@@ -65,28 +67,45 @@ class ConcreteObserver(Observer):
 
     def runrabbitmq(self):
 
-        print("Rabbit-Mq Is Running")
+
+        credentials = pika.PlainCredentials('guest', 'guest')
+        parameters = pika.ConnectionParameters(host='localhost', credentials=credentials)
+        connection = pika.BlockingConnection(parameters)
+        channel = connection.channel()
+        channel.queue_declare(queue='my_queue')
+        message = {'message': "--------------------SENDING-------------------------------"}
+        message_bytes = json.dumps(message).encode('utf-8')
+        channel.basic_publish(exchange='', routing_key='my_queue', body=message_bytes)
+        print(message)
+        connection.close()
+
+    def sendingrequest(self):
+
+        headers = {'Content-Type': 'application/json'}
+        res = requests.post('http://127.0.0.1:6000/notify', headers=headers)
 
     def update(self, subject):
         print(f"ConcreteObserver received update from ConcreteSubject with state {subject._state}")
 
         parameters = {
-            'host': 'rabbitmq-hostname',
+            'url': 'amqp://guest:guest@localhost:5672/%2F',
+        }
+
+        '''parameters = {
+            'hostname': 'rabbitmq-hostname',
             'port': 5672,
             'username': 'username',
             'password': 'password',
-            'virtual_host': '/'}
-
+            'virtual_host': '/'
+        }'''
         try:
             connection = rabbitpy.Connection(**parameters)
             print("Connection to RabbitMQ is alive!")
-            ConcreteObserver.runrabbitmq()
+            ConcreteObserver.runrabbitmq(self)
 
         except Exception as e:
             print("Failed to connect to RabbitMQ:", e)
-            headers = {'Content-Type': 'application/json'}
-            res = requests.post('http://127.0.0.1:6000/notify', headers=headers)
-            print("Sending Requests Rabbit mq is of")
+            ConcreteObserver.sendingrequest(self)
 
         finally:
             connection.close()
